@@ -1,2 +1,2 @@
-# fultter
+# flutter
 fultter essential class
