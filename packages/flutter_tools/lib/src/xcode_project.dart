@@ -156,6 +156,10 @@ abstract class XcodeBasedProject extends FlutterProjectPlatform {
   Directory get flutterPluginSwiftPackageDirectory =>
       flutterSwiftPackagesDirectory.childDirectory(kFlutterGeneratedPluginSwiftPackageName);
 
+  /// The Flutter generated directory for the Swift package handling the Flutter framework.
+  Directory get flutterFrameworkSwiftPackageDirectory => relativeSwiftPackagesDirectory
+      .childDirectory(kFlutterGeneratedFrameworkSwiftPackageTargetName);
+
   /// The Flutter generated Swift package manifest (Package.swift) for plugin
   /// dependencies.
   File get flutterPluginSwiftPackageManifest =>
@@ -172,15 +176,20 @@ abstract class XcodeBasedProject extends FlutterProjectPlatform {
         xcodeProjectInfoFile.readAsStringSync().contains(kFlutterGeneratedPluginSwiftPackageName);
   }
 
-  /// True if this project doesn't have Swift Package Manager disabled in the
-  /// pubspec, has either an iOS or macOS platform implementation, is not a
-  /// module project, Xcode is 15 or greater, and the Swift Package Manager
-  /// feature is enabled.
-  bool get usesSwiftPackageManager {
-    if (!featureFlags.isSwiftPackageManagerEnabled) {
-      return false;
-    }
+  /// Checks if FlutterFramework has been added to the project's build settings by checking the
+  /// contents of the pbxproj.
+  bool get flutterFrameworkSwiftPackageInProjectSettings {
+    return xcodeProjectInfoFile.existsSync() &&
+        xcodeProjectInfoFile.readAsStringSync().contains(
+          kFlutterGeneratedFrameworkSwiftPackageTargetName,
+        );
+  }
 
+  /// Return true if the project meets the following requirements:
+  ///   - Project is not a module
+  ///   - Xcode project exists
+  ///   - Xcode version is greater or equal to 15
+  bool get compatibleWithSwiftPackageManager {
     // TODO(loic-sharma): Support Swift Package Manager in add-to-app modules.
     // https://github.com/flutter/flutter/issues/146957
     if (parent.isModule) {
@@ -200,6 +209,11 @@ abstract class XcodeBasedProject extends FlutterProjectPlatform {
 
     return true;
   }
+
+  /// Return true if the Swift Package Manager feature is enabled and the project is
+  /// [compatibleWithSwiftPackageManager].
+  bool get usesSwiftPackageManager =>
+      featureFlags.isSwiftPackageManagerEnabled && compatibleWithSwiftPackageManager;
 
   Future<XcodeProjectInfo?> projectInfo() async {
     final XcodeProjectInterpreter? xcodeProjectInterpreter = globals.xcodeProjectInterpreter;
